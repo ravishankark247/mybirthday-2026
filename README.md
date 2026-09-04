@@ -15,10 +15,16 @@ assets/gift-qr.png
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 Open the local URL printed by Streamlit.
+
+To open the portrait and gift-payment dashboard instead:
+
+```bash
+python -m streamlit run dashboard.py
+```
 
 ## Deploy on Streamlit Community Cloud
 

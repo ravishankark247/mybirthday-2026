@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
+from html import escape
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 import streamlit as st
+
+from storage import add_wish, initialize, list_wishes
 
 
 st.set_page_config(
@@ -122,8 +125,7 @@ UPI_PAYMENT_LINK = (
 )
 
 
-if "wishes" not in st.session_state:
-    st.session_state.wishes = DEFAULT_WISHES.copy()
+initialize(DEFAULT_WISHES[0])
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
@@ -165,8 +167,9 @@ st.markdown(
         unsafe_allow_html=True,
 )
 
-wish_count = len(st.session_state.wishes)
-media_count = sum(1 for wish in st.session_state.wishes if wish.get("media"))
+wishes = list_wishes()
+wish_count = len(wishes)
+media_count = sum(1 for wish in wishes if wish.get("media"))
 col_a, col_b, col_c = st.columns([1, 1, 2])
 with col_a:
     st.markdown(f'<div class="stat"><div class="stat-value">{wish_count:02d}</div><div class="stat-label">Wishes collected</div></div>', unsafe_allow_html=True)
@@ -201,8 +204,7 @@ with st.container(border=False):
             media_record = None
             if media is not None:
                 media_record = {"name": media.name, "type": media.type, "bytes": media.getvalue()}
-            st.session_state.wishes.insert(
-                0,
+            add_wish(
                 {
                     "name": name.strip(),
                     "location": location.strip(),
@@ -210,7 +212,7 @@ with st.container(border=False):
                     "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "vibe": vibe,
                     "media": media_record,
-                },
+                }
             )
             st.success("Your birthday wish is live below.")
 
@@ -220,12 +222,13 @@ with st.container(border=False):
 if st.session_state.pop("just_published", False):
     st.balloons()
 
-wish_count = len(st.session_state.wishes)
-media_count = sum(1 for wish in st.session_state.wishes if wish.get("media"))
+wishes = list_wishes()
+wish_count = len(wishes)
+media_count = sum(1 for wish in wishes if wish.get("media"))
 st.markdown('<div class="section-title"><h2>The birthday feed</h2><p>Newest notes appear first.</p></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="feed-intro">{wish_count} note{"s" if wish_count != 1 else ""} in Ravi\'s celebration archive</div>', unsafe_allow_html=True)
 
-for wish in st.session_state.wishes:
+for wish in wishes:
     created_at = datetime.fromisoformat(wish["created_at"])
     readable_time = created_at.astimezone().strftime("%d %b %Y · %H:%M %Z")
     media_record = wish.get("media")
@@ -233,8 +236,8 @@ for wish in st.session_state.wishes:
     if media_record:
         st.markdown(f'<div class="media-tag">ATTACHED · {media_record["name"]}</div>', unsafe_allow_html=True)
     st.markdown(
-        f'<div class="wish-head"><div class="wish-name">{wish["name"]}</div><div class="stamp">{readable_time}<br>{wish["location"]}</div></div>'
-        f'<div class="wish-message">{wish["message"]}</div><div class="wish-vibe">Mood · {wish.get("vibe", "Warm & wonderful")}</div>',
+        f'<div class="wish-head"><div class="wish-name">{escape(wish["name"])}</div><div class="stamp">{readable_time}<br>{escape(wish["location"])}</div></div>'
+        f'<div class="wish-message">{escape(wish["message"])}</div><div class="wish-vibe">Mood · {escape(wish.get("vibe", "Warm & wonderful"))}</div>',
         unsafe_allow_html=True,
     )
     if media_record:
